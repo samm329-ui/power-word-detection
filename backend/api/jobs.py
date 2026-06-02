@@ -25,12 +25,18 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def create_job(
     target_lang: str = Form('en'),
     words_per_line: int = Form(3),
+    intensity: str = Form('medium'),
     file: UploadFile = File(...)
 ):
     """Uploads a video and starts a background captioning job."""
     # Validate words_per_line
     if words_per_line < 1 or words_per_line > 8:
         raise HTTPException(status_code=400, detail="words_per_line must be between 1 and 8")
+
+    # Validate intensity
+    valid_intensities = ['light', 'medium', 'aggressive']
+    if intensity not in valid_intensities:
+        raise HTTPException(status_code=400, detail=f"intensity must be one of: {', '.join(valid_intensities)}")
 
     job_id = str(uuid.uuid4())
     filename = file.filename
@@ -45,8 +51,8 @@ async def create_job(
         logger.error(f"Failed to save file: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
-    # Insert initial job state (store words_per_line in video_meta_json)
-    meta = json.dumps({"words_per_line": words_per_line})
+    # Insert initial job state (store settings in video_meta_json)
+    meta = json.dumps({"words_per_line": words_per_line, "intensity": intensity})
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
@@ -59,7 +65,7 @@ async def create_job(
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
     # Start background thread for heavy processing
-    t = Thread(target=run_pipeline_sync, args=(job_id, file_path, target_lang))
+    t = Thread(target=run_pipeline_sync, args=(job_id, file_path, target_lang, intensity))
     t.daemon = True
     t.start()
 
@@ -69,7 +75,8 @@ async def create_job(
         progress=0,
         filename=filename,
         target_lang=target_lang,
-        words_per_line=words_per_line
+        words_per_line=words_per_line,
+        intensity=intensity,
     )
 
 @router.get("/", response_model=List[JobDetailResponse])
@@ -81,10 +88,12 @@ async def list_jobs(db: aiosqlite.Connection = Depends(get_db)):
     jobs = []
     for r in rows:
         words_per_line = 3
+        intensity = 'medium'
         if r['video_meta_json']:
             try:
                 meta = json.loads(r['video_meta_json'])
                 words_per_line = meta.get('words_per_line', 3)
+                intensity = meta.get('intensity', 'medium')
             except (json.JSONDecodeError, TypeError):
                 pass
         jobs.append(JobDetailResponse(
@@ -94,6 +103,7 @@ async def list_jobs(db: aiosqlite.Connection = Depends(get_db)):
             filename=r['filename'],
             target_lang=r['target_lang'],
             words_per_line=words_per_line,
+            intensity=intensity,
             error=r['error'],
             created_at=r['created_at'],
             completed_at=r['completed_at']
@@ -109,12 +119,14 @@ async def get_job(job_id: str, db: aiosqlite.Connection = Depends(get_db)):
     if not r:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # Parse words_per_line from video_meta_json
+    # Parse settings from video_meta_json
     words_per_line = 3
+    intensity = 'medium'
     if r['video_meta_json']:
         try:
             meta = json.loads(r['video_meta_json'])
             words_per_line = meta.get('words_per_line', 3)
+            intensity = meta.get('intensity', 'medium')
         except (json.JSONDecodeError, TypeError):
             pass
 
@@ -125,6 +137,7 @@ async def get_job(job_id: str, db: aiosqlite.Connection = Depends(get_db)):
         filename=r['filename'],
         target_lang=r['target_lang'],
         words_per_line=words_per_line,
+        intensity=intensity,
         error=r['error'],
         vtt_content=r['vtt_content'],
         srt_content=r['srt_content'],
