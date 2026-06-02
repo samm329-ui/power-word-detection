@@ -4,19 +4,27 @@ import { useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { Upload, FileAudio, Loader2 } from "lucide-react";
 import { createJob } from "@/lib/api";
-import { Job } from "@/lib/types";
+import { Job, Intensity } from "@/lib/types";
 import { formatFileSize } from "@/lib/utils";
 
 interface UploadScreenProps {
   onJobCreated: (job: Job) => void;
   wordsPerLine: number;
   onWordsPerLineChange: (value: number) => void;
+  intensity: Intensity;
+  onIntensityChange: (value: Intensity) => void;
+  targetLang: string;
+  onTargetLangChange: (value: string) => void;
 }
 
 export function UploadScreen({
   onJobCreated,
   wordsPerLine,
   onWordsPerLineChange,
+  intensity,
+  onIntensityChange,
+  targetLang,
+  onTargetLangChange,
 }: UploadScreenProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -78,7 +86,7 @@ export function UploadScreen({
     setError(null);
 
     try {
-      const job = await createJob(file, wordsPerLine);
+      const job = await createJob(file, wordsPerLine, targetLang, intensity);
       onJobCreated(job);
     } catch (err: unknown) {
       let message = "Failed to upload file";
@@ -149,6 +157,36 @@ export function UploadScreen({
         )}
       </div>
 
+      {/* Language Selection */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <label className="mb-3 block text-sm font-medium text-zinc-300">
+          Transcription Language
+        </label>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { value: "en", label: "English", sub: "EN" },
+            { value: "hi", label: "Hindi", sub: "HI" },
+            { value: "hinglish", label: "Hinglish", sub: "EN+HI" },
+          ].map((lang) => (
+            <button
+              key={lang.value}
+              onClick={() => onTargetLangChange(lang.value)}
+              className={`rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
+                targetLang === lang.value
+                  ? "border-power-yellow bg-power-yellow/10 text-power-yellow"
+                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="block">{lang.label}</span>
+              <span className="mt-1 block text-xs opacity-70">{lang.sub}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-zinc-500">
+          Select the primary language spoken in your video
+        </p>
+      </div>
+
       {/* Words per Line */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
         <label className="mb-3 block text-sm font-medium text-zinc-300">
@@ -169,6 +207,36 @@ export function UploadScreen({
         </div>
         <p className="mt-2 text-xs text-zinc-500">
           Number of words grouped together in each caption line
+        </p>
+      </div>
+
+      {/* Intensity Level */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <label className="mb-3 block text-sm font-medium text-zinc-300">
+          Power Word Intensity
+        </label>
+        <div className="grid grid-cols-3 gap-3">
+          {(["light", "medium", "aggressive"] as const).map((level) => (
+            <button
+              key={level}
+              onClick={() => onIntensityChange(level)}
+              className={`rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
+                intensity === level
+                  ? "border-power-yellow bg-power-yellow/10 text-power-yellow"
+                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              <span className="block capitalize">{level}</span>
+              <span className="mt-1 block text-xs opacity-70">
+                {level === "light" && "1 per segment"}
+                {level === "medium" && "2 per segment"}
+                {level === "aggressive" && "3 per segment"}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-zinc-500">
+          Controls how many words get highlighted per caption segment
         </p>
       </div>
 
