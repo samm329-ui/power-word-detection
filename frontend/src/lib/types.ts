@@ -20,6 +20,8 @@ export interface CaptionLine {
   text: string;
 }
 
+export type Intensity = "light" | "medium" | "aggressive";
+
 export interface Job {
   id: string;
   status: string;
@@ -27,6 +29,7 @@ export interface Job {
   filename: string;
   target_lang: string;
   words_per_line: number;
+  intensity: Intensity;
   error?: string | null;
   created_at: string;
   completed_at?: string | null;
