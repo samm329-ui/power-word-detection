@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { UploadScreen } from "@/components/UploadScreen";
 import { ProcessingScreen } from "@/components/ProcessingScreen";
 import { ResultsScreen } from "@/components/ResultsScreen";
-import { Segment, Job } from "@/lib/types";
+import { Segment, Job, Intensity } from "@/lib/types";
 
 type Screen = "upload" | "processing" | "results";
 
@@ -14,6 +14,8 @@ export default function Home() {
   const [job, setJob] = useState<Job | null>(null);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [wordsPerLine, setWordsPerLine] = useState(3);
+  const [intensity, setIntensity] = useState<Intensity>("medium");
+  const [targetLang, setTargetLang] = useState("en");
 
   const handleJobCreated = useCallback((createdJob: Job) => {
     setJobId(createdJob.id);
@@ -36,6 +38,8 @@ export default function Home() {
     setJob(null);
     setSegments([]);
     setWordsPerLine(3);
+    setIntensity("medium");
+    setTargetLang("en");
   }, []);
 
   return (
@@ -56,6 +60,10 @@ export default function Home() {
           onJobCreated={handleJobCreated}
           wordsPerLine={wordsPerLine}
           onWordsPerLineChange={setWordsPerLine}
+          intensity={intensity}
+          onIntensityChange={setIntensity}
+          targetLang={targetLang}
+          onTargetLangChange={setTargetLang}
         />
       )}
 
