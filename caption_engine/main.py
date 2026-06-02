@@ -27,7 +27,7 @@ from .config import (
     MODEL_ALIGN_EN, MODEL_ALIGN_HI, MIN_SCORE_FALLBACK
 )
 
-def run_pipeline(video_path: str, user_target_lang: str = "en", progress_callback=None) -> Dict[str, Any]:
+def run_pipeline(video_path: str, user_target_lang: str = "en", progress_callback=None, intensity: str = "medium") -> Dict[str, Any]:
     """
     Main execution flow for FYAP Pro Engine.
     Executes the highly deterministic 15-upgrade pipeline.
@@ -194,7 +194,7 @@ def run_pipeline(video_path: str, user_target_lang: str = "en", progress_callbac
 
         # 16. Power Word Detection
         emit_progress("Analyzing Power Words", 92)
-        enhanced_segments = detect_power_words(clamped_segments)
+        enhanced_segments = detect_power_words(clamped_segments, intensity=intensity)
 
         emit_progress("Generating Formats", 95)
         srt_content = generate_srt(enhanced_segments)
