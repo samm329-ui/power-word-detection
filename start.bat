@@ -5,21 +5,156 @@ echo    Power Word Detection - Auto Setup ^& Run
 echo ============================================
 echo.
 
-REM --- Step 1: Check Python ---
+REM --- Step 1: Check and Install Python ---
+echo [1/7] Checking Python...
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: Python is not installed or not in PATH.
-    echo Download from https://www.python.org/downloads/
+    echo      Python not found. Installing...
     echo.
-    pause
-    exit /b 1
+
+    REM Try winget first
+    echo      Trying winget...
+    winget install --id Python.Python.3.11 -e --accept-package-agreements --accept-source-agreements >nul 2>&1
+    if errorlevel 1 (
+        winget install --id Python.Python.3.12 -e --accept-package-agreements --accept-source-agreements >nul 2>&1
+    )
+
+    REM Refresh PATH
+    set "PATH=%PATH%;%LOCALAPPDATA%\Programs\Python\Python311\;%LOCALAPPDATA%\Programs\Python\Python311\Scripts\;%APPDATA%\Python\Python311\Scripts\"
+    python --version >nul 2>&1
+    if errorlevel 1 (
+        REM Try direct download
+        echo      Trying direct download...
+        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
+            Write-Host 'Downloading Python 3.11.9...'; ^
+            Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe' -OutFile '%TEMP%\python_installer.exe' -UseBasicParsing; ^
+            Write-Host 'Installing Python (silent)...'; ^
+            Start-Process '%TEMP%\python_installer.exe' -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1' -Wait; ^
+            Remove-Item '%TEMP%\python_installer.exe' -Force"
+
+        REM Refresh PATH again
+        set "PATH=%PATH%;C:\Program Files\Python311\;C:\Program Files\Python311\Scripts\"
+        python --version >nul 2>&1
+        if errorlevel 1 (
+            echo.
+            echo      ==========================================
+            echo      ERROR: Could not install Python.
+            echo      ==========================================
+            echo      Please install manually from:
+            echo      https://www.python.org/downloads/
+            echo      Make sure to check "Add Python to PATH"
+            echo      ==========================================
+            echo.
+            pause
+            exit /b 1
+        )
+    )
+    echo      Python installed successfully.
+) else (
+    echo      [OK] Python found.
 )
-echo [OK] Python found.
 echo.
 
-REM --- Step 2: Create venv if needed ---
+REM --- Step 2: Check and Install Git ---
+echo [2/7] Checking Git...
+git --version >nul 2>&1
+if errorlevel 1 (
+    echo      Git not found. Installing...
+    echo.
+
+    REM Try winget first
+    echo      Trying winget...
+    winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements >nul 2>&1
+
+    REM Refresh PATH
+    set "PATH=%PATH%;C:\Program Files\Git\cmd\"
+    git --version >nul 2>&1
+    if errorlevel 1 (
+        REM Try direct download
+        echo      Trying direct download...
+        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
+            Write-Host 'Downloading Git...'; ^
+            $releases = Invoke-RestMethod -Uri 'https://api.github.com/repos/git-for-windows/git/releases/latest' -UseBasicParsing; ^
+            $asset = $releases.assets | Where-Object { $_.name -match '64-bit.exe' } | Select-Object -First 1; ^
+            if ($asset) { ^
+                Invoke-WebRequest -Uri $asset.browser_download_url -OutFile '%TEMP%\git_installer.exe' -UseBasicParsing; ^
+                Write-Host 'Installing Git (silent)...'; ^
+                Start-Process '%TEMP%\git_installer.exe' -ArgumentList '/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh' -Wait; ^
+                Remove-Item '%TEMP%\git_installer.exe' -Force ^
+            }"
+
+        REM Refresh PATH
+        set "PATH=%PATH%;C:\Program Files\Git\cmd\"
+        git --version >nul 2>&1
+        if errorlevel 1 (
+            echo.
+            echo      WARNING: Could not auto-install Git.
+            echo      The app will still work without Git.
+            echo      Install manually from: https://git-scm.com/download/win
+            echo.
+        ) else (
+            echo      Git installed successfully.
+        )
+    ) else (
+        echo      Git installed successfully.
+    )
+) else (
+    echo      [OK] Git found.
+)
+echo.
+
+REM --- Step 3: Check and Install Node.js ---
+echo [3/7] Checking Node.js...
+node --version >nul 2>&1
+if errorlevel 1 (
+    echo      Node.js not found. Installing...
+    echo.
+
+    REM Try winget first
+    echo      Trying winget...
+    winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements >nul 2>&1
+
+    REM Refresh PATH
+    set "PATH=%PATH%;C:\Program Files\nodejs\"
+    node --version >nul 2>&1
+    if errorlevel 1 (
+        REM Try direct download
+        echo      Trying direct download...
+        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
+            Write-Host 'Downloading Node.js LTS...'; ^
+            Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.11.1/node-v20.11.1-x64.msi' -OutFile '%TEMP%\node_installer.msi' -UseBasicParsing; ^
+            Write-Host 'Installing Node.js (silent)...'; ^
+            Start-Process 'msiexec.exe' -ArgumentList '/i','%TEMP%\node_installer.msi','/quiet','/norestart' -Wait; ^
+            Remove-Item '%TEMP%\node_installer.msi' -Force"
+
+        REM Refresh PATH
+        set "PATH=%PATH%;C:\Program Files\nodejs\"
+        node --version >nul 2>&1
+        if errorlevel 1 (
+            echo.
+            echo      ==========================================
+            echo      ERROR: Could not install Node.js.
+            echo      ==========================================
+            echo      Please install manually from:
+            echo      https://nodejs.org/
+            echo      ==========================================
+            echo.
+            pause
+            exit /b 1
+        )
+    )
+    echo      Node.js installed successfully.
+) else (
+    echo      [OK] Node.js found.
+)
+echo.
+
+REM --- Step 4: Create venv if needed ---
 if not exist venv\Scripts\python.exe (
-    echo [1/5] Creating virtual environment...
+    echo [4/7] Creating virtual environment...
     python -m venv venv
     if errorlevel 1 (
         echo ERROR: Failed to create virtual environment.
@@ -29,12 +164,12 @@ if not exist venv\Scripts\python.exe (
     )
     echo      Done.
 ) else (
-    echo [1/5] Virtual environment already exists.
+    echo [4/7] Virtual environment already exists.
 )
 echo.
 
-REM --- Step 3: Install Python deps ---
-echo [2/5] Checking Python dependencies...
+REM --- Step 5: Install Python deps ---
+echo [5/7] Checking Python dependencies...
 venv\Scripts\pip.exe install -q -r requirements.txt
 if errorlevel 1 (
     echo ERROR: Failed to install Python dependencies.
@@ -45,18 +180,18 @@ if errorlevel 1 (
 echo      Done.
 echo.
 
-REM --- Step 4: Setup .env ---
+REM --- Step 6: Setup .env ---
 if not exist .env (
-    echo [3/5] Creating .env file...
+    echo [6/7] Creating .env file...
     copy .env.template .env >nul
     echo      IMPORTANT: Edit .env with your GROQ_API_KEY
 ) else (
-    echo [3/5] .env already exists.
+    echo [6/7] .env already exists.
 )
 echo.
 
-REM --- Step 5: Check FFmpeg ---
-echo [4/5] Checking FFmpeg...
+REM --- Step 7: Check FFmpeg ---
+echo [7/7] Checking FFmpeg...
 
 REM Try to find ffmpeg.exe anywhere on the system
 set "FFMPEG_EXE="
@@ -148,9 +283,9 @@ echo.
 :ffmpeg_ok
 echo.
 
-REM --- Step 6: Install frontend deps ---
+REM --- Install frontend deps ---
 if not exist frontend\node_modules (
-    echo [5/5] Installing frontend dependencies...
+    echo [+] Installing frontend dependencies...
     cd frontend
     call npm install --silent
     if errorlevel 1 (
@@ -163,17 +298,17 @@ if not exist frontend\node_modules (
     cd ..
     echo      Done.
 ) else (
-    echo [5/5] Frontend dependencies already installed.
+    echo [+] Frontend dependencies already installed.
 )
 echo.
 
-REM --- Step 7: Launch servers ---
+REM --- Launch servers ---
 echo ============================================
 echo    Starting servers...
 echo ============================================
 echo.
 
-start "Backend" cmd /k "venv\Scripts\python.exe -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+start "Backend" cmd /k "venv\Scripts\python.exe -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir caption_engine --host 0.0.0.0 --port 8000"
 timeout /t 3 /nobreak >nul
 start "Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
