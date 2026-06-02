@@ -8,6 +8,7 @@ class JobResponse(BaseModel):
     filename: str
     target_lang: str
     words_per_line: int = 3
+    intensity: str = "medium"
 
 class JobDetailResponse(JobResponse):
     error: Optional[str] = None
