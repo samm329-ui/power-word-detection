@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { RotateCcw, ChevronDown, ChevronUp, FileAudio } from "lucide-react";
+import { RotateCcw, ChevronDown, ChevronUp, FileAudio, Play } from "lucide-react";
 import { Segment } from "@/lib/types";
 import { groupSegmentsIntoLines, formatTimestamp } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ interface ResultsScreenProps {
   onWordsPerLineChange: (value: number) => void;
   filename: string;
   onReset: () => void;
+  onOpenPreview: () => void;
 }
 
 export function ResultsScreen({
@@ -19,6 +20,7 @@ export function ResultsScreen({
   onWordsPerLineChange,
   filename,
   onReset,
+  onOpenPreview,
 }: ResultsScreenProps) {
   const [showAll, setShowAll] = useState(false);
 
@@ -52,13 +54,22 @@ export function ResultsScreen({
             </p>
           </div>
         </div>
-        <button
-          onClick={onReset}
-          className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
-        >
-          <RotateCcw className="h-4 w-4" />
-          New File
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenPreview}
+            className="flex items-center gap-2 rounded-lg bg-power-yellow px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-yellow-400"
+          >
+            <Play className="h-4 w-4" fill="currentColor" />
+            Preview & Animate
+          </button>
+          <button
+            onClick={onReset}
+            className="flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white"
+          >
+            <RotateCcw className="h-4 w-4" />
+            New File
+          </button>
+        </div>
       </div>
 
       {/* Words per Line Control */}
