@@ -54,7 +54,7 @@ async def update_job_status(job_id: str, status: str, progress: int = None,
     except Exception as e:
         logger.error(f"Failed to update job {job_id} status: {e}")
 
-def run_pipeline_sync(job_id: str, video_path: str, target_lang: str):
+def run_pipeline_sync(job_id: str, video_path: str, target_lang: str, intensity: str = "medium"):
     """
     Synchronous wrapper to run the pipeline.
     This runs in a separate thread but needs to send async websocket messages.
@@ -90,7 +90,8 @@ def run_pipeline_sync(job_id: str, video_path: str, target_lang: str):
         result = run_pipeline(
             video_path=video_path,
             user_target_lang=target_lang,
-            progress_callback=on_progress
+            progress_callback=on_progress,
+            intensity=intensity,
         )
         
         logger.info(f"Job {job_id} pipeline returned: {result.get('status', 'unknown')}")
