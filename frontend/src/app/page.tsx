@@ -4,9 +4,10 @@ import { useState, useCallback } from "react";
 import { UploadScreen } from "@/components/UploadScreen";
 import { ProcessingScreen } from "@/components/ProcessingScreen";
 import { ResultsScreen } from "@/components/ResultsScreen";
+import { VerticalPreviewPage } from "@/components/VerticalPreviewPage";
 import { Segment, Job, Intensity } from "@/lib/types";
 
-type Screen = "upload" | "processing" | "results";
+type Screen = "upload" | "processing" | "results" | "preview";
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("upload");
@@ -40,6 +41,14 @@ export default function Home() {
     setWordsPerLine(3);
     setIntensity("medium");
     setTargetLang("en");
+  }, []);
+
+  const handleOpenPreview = useCallback(() => {
+    setScreen("preview");
+  }, []);
+
+  const handleBackFromPreview = useCallback(() => {
+    setScreen("results");
   }, []);
 
   return (
@@ -82,6 +91,16 @@ export default function Home() {
           onWordsPerLineChange={setWordsPerLine}
           filename={job?.filename || ""}
           onReset={handleReset}
+          onOpenPreview={handleOpenPreview}
+        />
+      )}
+
+      {screen === "preview" && (
+        <VerticalPreviewPage
+          segments={segments}
+          wordsPerLine={wordsPerLine}
+          filename={job?.filename || ""}
+          onBack={handleBackFromPreview}
         />
       )}
     </div>
