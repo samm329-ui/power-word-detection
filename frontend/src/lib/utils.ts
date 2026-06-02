@@ -1,5 +1,72 @@
 import { Segment, CaptionLine, Word, ProcessingStep } from "./types";
 
+// Fillers to NEVER pick as power words (matches backend)
+const FILLERS = new Set([
+  "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+  "have", "has", "had", "do", "does", "did", "will", "would", "could",
+  "should", "may", "might", "can", "shall", "must",
+  "in", "on", "at", "to", "for", "of", "with", "by", "from", "as",
+  "into", "about", "between", "through", "after", "before",
+  "and", "or", "but", "nor", "so", "yet",
+  "i", "you", "he", "she", "it", "we", "they", "me", "him", "her",
+  "us", "them", "my", "your", "his", "its", "our", "their",
+  "this", "that", "these", "those", "here", "there",
+  "not", "no", "very", "just", "also", "too", "only", "even",
+  "hai", "hain", "tha", "thi", "ho", "hua", "hue",
+  "ka", "ki", "ke", "ko", "se", "me", "pe",
+  "aur", "ya", "jo", "wo", "yah", "vah",
+  "ek", "iss", "uss", "yeh", "woh",
+  "main", "mai", "tu", "tum", "aap", "ye",
+  "kya", "kaise", "kyun", "kab", "kaha",
+  "bhi", "hi", "toh", "to",
+  "isliye", "shayad", "phir",
+]);
+
+/**
+ * Ensures each display line has at least 1 power word.
+ * If a line has 0 power words, promotes the longest non-filler word.
+ */
+function ensurePowerPerLine(lines: CaptionLine[]): CaptionLine[] {
+  return lines.map((line) => {
+    // Already has a power word
+    if (line.words.some((w) => w.is_power)) return line;
+
+    // Find best candidate (longest non-filler word)
+    let bestIdx = -1;
+    let bestLen = 0;
+    for (let i = 0; i < line.words.length; i++) {
+      const wl = line.words[i].word
+        .trim()
+        .toLowerCase()
+        .replace(/[,.\!?;:]$/, "");
+      if (!wl || FILLERS.has(wl)) continue;
+      if (wl.length > bestLen) {
+        bestLen = wl.length;
+        bestIdx = i;
+      }
+    }
+
+    // If all filler, pick longest word
+    if (bestIdx === -1 && line.words.length > 0) {
+      bestIdx = line.words.reduce(
+        (best, w, i) =>
+          w.word.trim().length > (line.words[best]?.word.trim().length || 0)
+            ? i
+            : best,
+        0
+      );
+    }
+
+    if (bestIdx >= 0) {
+      const newWords = [...line.words];
+      newWords[bestIdx] = { ...newWords[bestIdx], is_power: true };
+      return { ...line, words: newWords };
+    }
+
+    return line;
+  });
+}
+
 /**
  * Groups word-level segments into caption lines based on words_per_line.
  */
@@ -29,7 +96,8 @@ export function groupSegmentsIntoLines(
     });
   }
 
-  return lines;
+  // Ensure each display line has at least 1 power word
+  return ensurePowerPerLine(lines);
 }
 
 /**
