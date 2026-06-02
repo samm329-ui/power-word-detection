@@ -11,12 +11,14 @@ const api = axios.create({
 export async function createJob(
   file: File,
   wordsPerLine: number,
-  targetLang: string = "en"
+  targetLang: string = "en",
+  intensity: string = "medium"
 ): Promise<Job> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("words_per_line", wordsPerLine.toString());
   formData.append("target_lang", targetLang);
+  formData.append("intensity", intensity);
 
   const response = await api.post<Job>("/jobs", formData, {
     headers: { "Content-Type": "multipart/form-data" },
