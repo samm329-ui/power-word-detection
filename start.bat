@@ -1,304 +1,72 @@
 @echo off
 title Power Word Detection
 echo ============================================
-echo    Power Word Detection - Auto Setup ^& Run
+echo    Power Word Detection - Starting...
 echo ============================================
 echo.
 
-REM --- Step 1: Check and Install Python ---
-echo [1/7] Checking Python...
+REM --- Check Python ---
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo      Python not found. Installing...
-    echo.
-
-    REM Try winget first
-    echo      Trying winget...
-    winget install --id Python.Python.3.11 -e --accept-package-agreements --accept-source-agreements >nul 2>&1
-    if errorlevel 1 (
-        winget install --id Python.Python.3.12 -e --accept-package-agreements --accept-source-agreements >nul 2>&1
-    )
-
-    REM Refresh PATH
-    set "PATH=%PATH%;%LOCALAPPDATA%\Programs\Python\Python311\;%LOCALAPPDATA%\Programs\Python\Python311\Scripts\;%APPDATA%\Python\Python311\Scripts\"
-    python --version >nul 2>&1
-    if errorlevel 1 (
-        REM Try direct download
-        echo      Trying direct download...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-            Write-Host 'Downloading Python 3.11.9...'; ^
-            Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe' -OutFile '%TEMP%\python_installer.exe' -UseBasicParsing; ^
-            Write-Host 'Installing Python (silent)...'; ^
-            Start-Process '%TEMP%\python_installer.exe' -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1' -Wait; ^
-            Remove-Item '%TEMP%\python_installer.exe' -Force"
-
-        REM Refresh PATH again
-        set "PATH=%PATH%;C:\Program Files\Python311\;C:\Program Files\Python311\Scripts\"
-        python --version >nul 2>&1
-        if errorlevel 1 (
-            echo.
-            echo      ==========================================
-            echo      ERROR: Could not install Python.
-            echo      ==========================================
-            echo      Please install manually from:
-            echo      https://www.python.org/downloads/
-            echo      Make sure to check "Add Python to PATH"
-            echo      ==========================================
-            echo.
-            pause
-            exit /b 1
-        )
-    )
-    echo      Python installed successfully.
-) else (
-    echo      [OK] Python found.
-)
-echo.
-
-REM --- Step 2: Check and Install Git ---
-echo [2/7] Checking Git...
-git --version >nul 2>&1
-if errorlevel 1 (
-    echo      Git not found. Installing...
-    echo.
-
-    REM Try winget first
-    echo      Trying winget...
-    winget install --id Git.Git -e --accept-package-agreements --accept-source-agreements >nul 2>&1
-
-    REM Refresh PATH
-    set "PATH=%PATH%;C:\Program Files\Git\cmd\"
-    git --version >nul 2>&1
-    if errorlevel 1 (
-        REM Try direct download
-        echo      Trying direct download...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-            Write-Host 'Downloading Git...'; ^
-            $releases = Invoke-RestMethod -Uri 'https://api.github.com/repos/git-for-windows/git/releases/latest' -UseBasicParsing; ^
-            $asset = $releases.assets | Where-Object { $_.name -match '64-bit.exe' } | Select-Object -First 1; ^
-            if ($asset) { ^
-                Invoke-WebRequest -Uri $asset.browser_download_url -OutFile '%TEMP%\git_installer.exe' -UseBasicParsing; ^
-                Write-Host 'Installing Git (silent)...'; ^
-                Start-Process '%TEMP%\git_installer.exe' -ArgumentList '/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh' -Wait; ^
-                Remove-Item '%TEMP%\git_installer.exe' -Force ^
-            }"
-
-        REM Refresh PATH
-        set "PATH=%PATH%;C:\Program Files\Git\cmd\"
-        git --version >nul 2>&1
-        if errorlevel 1 (
-            echo.
-            echo      WARNING: Could not auto-install Git.
-            echo      The app will still work without Git.
-            echo      Install manually from: https://git-scm.com/download/win
-            echo.
-        ) else (
-            echo      Git installed successfully.
-        )
-    ) else (
-        echo      Git installed successfully.
-    )
-) else (
-    echo      [OK] Git found.
-)
-echo.
-
-REM --- Step 3: Check and Install Node.js ---
-echo [3/7] Checking Node.js...
-node --version >nul 2>&1
-if errorlevel 1 (
-    echo      Node.js not found. Installing...
-    echo.
-
-    REM Try winget first
-    echo      Trying winget...
-    winget install --id OpenJS.NodeJS.LTS -e --accept-package-agreements --accept-source-agreements >nul 2>&1
-
-    REM Refresh PATH
-    set "PATH=%PATH%;C:\Program Files\nodejs\"
-    node --version >nul 2>&1
-    if errorlevel 1 (
-        REM Try direct download
-        echo      Trying direct download...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-            Write-Host 'Downloading Node.js LTS...'; ^
-            Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.11.1/node-v20.11.1-x64.msi' -OutFile '%TEMP%\node_installer.msi' -UseBasicParsing; ^
-            Write-Host 'Installing Node.js (silent)...'; ^
-            Start-Process 'msiexec.exe' -ArgumentList '/i','%TEMP%\node_installer.msi','/quiet','/norestart' -Wait; ^
-            Remove-Item '%TEMP%\node_installer.msi' -Force"
-
-        REM Refresh PATH
-        set "PATH=%PATH%;C:\Program Files\nodejs\"
-        node --version >nul 2>&1
-        if errorlevel 1 (
-            echo.
-            echo      ==========================================
-            echo      ERROR: Could not install Node.js.
-            echo      ==========================================
-            echo      Please install manually from:
-            echo      https://nodejs.org/
-            echo      ==========================================
-            echo.
-            pause
-            exit /b 1
-        )
-    )
-    echo      Node.js installed successfully.
-) else (
-    echo      [OK] Node.js found.
-)
-echo.
-
-REM --- Step 4: Create venv if needed ---
-if not exist venv\Scripts\python.exe (
-    echo [4/7] Creating virtual environment...
-    python -m venv venv
-    if errorlevel 1 (
-        echo ERROR: Failed to create virtual environment.
-        echo.
-        pause
-        exit /b 1
-    )
-    echo      Done.
-) else (
-    echo [4/7] Virtual environment already exists.
-)
-echo.
-
-REM --- Step 5: Install Python deps ---
-echo [5/7] Checking Python dependencies...
-venv\Scripts\pip.exe install -q -r requirements.txt
-if errorlevel 1 (
-    echo ERROR: Failed to install Python dependencies.
-    echo.
+    echo ERROR: Python not found.
+    echo Please install Python from: https://www.python.org/downloads/
+    echo Make sure to check "Add Python to PATH" during installation.
     pause
     exit /b 1
 )
-echo      Done.
-echo.
+echo [OK] Python found.
 
-REM --- Step 6: Setup .env ---
-if not exist .env (
-    echo [6/7] Creating .env file...
-    copy .env.template .env >nul
-    echo      IMPORTANT: Edit .env with your GROQ_API_KEY
-) else (
-    echo [6/7] .env already exists.
+REM --- Check Node.js ---
+node --version >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Node.js not found.
+    echo Please install Node.js from: https://nodejs.org/
+    pause
+    exit /b 1
 )
-echo.
+echo [OK] Node.js found.
 
-REM --- Step 7: Check FFmpeg ---
-echo [7/7] Checking FFmpeg...
-
-REM Try to find ffmpeg.exe anywhere on the system
-set "FFMPEG_EXE="
-where ffmpeg >nul 2>&1 && for /f "delims=" %%i in ('where ffmpeg') do if not defined FFMPEG_EXE set "FFMPEG_EXE=%%i"
-
-REM Also check .env
-if not defined FFMPEG_EXE (
-    for /f "usebackq tokens=1,* delims==" %%a in (".env") do (
-        if /i "%%a"=="FFMPEG_PATH" set "FFMPEG_EXE=%%b"
-    )
-    set "FFMPEG_EXE=%FFMPEG_EXE:"=%"
-)
-
-REM Also check common locations
-if not defined FFMPEG_EXE if exist "C:\ffmpeg\ffmpeg.exe" set "FFMPEG_EXE=C:\ffmpeg\ffmpeg.exe"
-
-REM Check if valid
-if defined FFMPEG_EXE (
-    if exist "%FFMPEG_EXE%" (
-        echo      Found: %FFMPEG_EXE%
-        REM Update .env
-        powershell -NoProfile -Command "(Get-Content .env) -replace '^FFMPEG_PATH=.*','FFMPEG_PATH=%FFMPEG_EXE%' | Set-Content .env"
-        goto :ffmpeg_ok
-    )
-)
-
-REM Not found - need to download
-echo      FFmpeg not found on this system.
-echo      Attempting to install...
-echo.
-
-REM Method 1: Try winget
-echo      Trying winget...
-winget install --id Gyan.FFmpeg -e --accept-package-agreements --accept-source-agreements >nul 2>&1
-if exist "C:\ffmpeg\ffmpeg.exe" (
-    echo      Installed via winget.
-    powershell -NoProfile -Command "(Get-Content .env) -replace '^FFMPEG_PATH=.*','FFMPEG_PATH=C:\ffmpeg\ffmpeg.exe' | Set-Content .env"
-    goto :ffmpeg_ok
-)
-
-REM Method 2: Try direct download
-echo      Trying direct download from gyan.dev...
-echo      (This may take a few minutes, please wait...)
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-    try { ^
-        Write-Host 'Downloading...'; ^
-        Invoke-WebRequest -Uri 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile '%TEMP%\ffmpeg.zip' -UseBasicParsing -ErrorAction Stop; ^
-        Write-Host 'Extracting...'; ^
-        if (-not (Test-Path 'C:\ffmpeg')) { New-Item 'C:\ffmpeg' -ItemType Directory | Out-Null }; ^
-        Expand-Archive -Path '%TEMP%\ffmpeg.zip' -DestinationPath '%TEMP%\ffmpeg_extract' -Force; ^
-        $inner = Get-ChildItem '%TEMP%\ffmpeg_extract' -Directory | Select-Object -First 1; ^
-        if ($inner) { ^
-            Get-ChildItem (Join-Path $inner.FullName 'bin') -Filter '*.exe' | ForEach-Object { Copy-Item $_.FullName 'C:\ffmpeg\' -Force }; ^
-            Get-ChildItem (Join-Path $inner.FullName 'bin') -Filter '*.dll' | ForEach-Object { Copy-Item $_.FullName 'C:\ffmpeg\' -Force }; ^
-        }; ^
-        Remove-Item '%TEMP%\ffmpeg.zip' -Force -ErrorAction SilentlyContinue; ^
-        Remove-Item '%TEMP%\ffmpeg_extract' -Recurse -Force -ErrorAction SilentlyContinue; ^
-        Write-Host 'Done.' ^
-    } catch { ^
-        Write-Host ('Error: ' + $_.Exception.Message) ^
-    }"
-
-if exist "C:\ffmpeg\ffmpeg.exe" (
-    echo      FFmpeg installed at C:\ffmpeg\ffmpeg.exe
-    powershell -NoProfile -Command "(Get-Content .env) -replace '^FFMPEG_PATH=.*','FFMPEG_PATH=C:\ffmpeg\ffmpeg.exe' | Set-Content .env"
-    goto :ffmpeg_ok
-)
-
-REM All methods failed
-echo.
-echo      ==========================================
-echo      WARNING: Could not install FFmpeg.
-echo      ==========================================
-echo.
-echo      Please install manually:
-echo        1. Go to https://www.gyan.dev/ffmpeg/builds/
-echo        2. Download "release essentials" build
-echo        3. Extract to C:\ffmpeg
-echo        4. Or edit .env and set FFMPEG_PATH
-echo.
-echo      The app will NOT work without FFmpeg.
-echo.
-pause
-echo.
-
-:ffmpeg_ok
-echo.
-
-REM --- Install frontend deps ---
-if not exist frontend\node_modules (
-    echo [+] Installing frontend dependencies...
-    cd frontend
-    call npm install --silent
+REM --- Check venv ---
+if not exist venv\Scripts\python.exe (
+    echo Creating virtual environment...
+    python -m venv venv
     if errorlevel 1 (
-        echo ERROR: Failed to install frontend dependencies.
-        cd ..
-        echo.
+        echo ERROR: Failed to create virtual environment.
         pause
         exit /b 1
     )
-    cd ..
-    echo      Done.
+)
+echo [OK] Virtual environment ready.
+
+REM --- Install Python dependencies ---
+echo Installing Python dependencies...
+venv\Scripts\pip.exe install -q -r requirements.txt
+if errorlevel 1 (
+    echo ERROR: Failed to install Python dependencies.
+    pause
+    exit /b 1
+)
+echo [OK] Python dependencies installed.
+
+REM --- Check FFmpeg ---
+where ffmpeg >nul 2>&1
+if errorlevel 1 (
+    echo WARNING: FFmpeg not found. Video processing may not work.
+    echo Please install from: https://ffmpeg.org/download.html
 ) else (
-    echo [+] Frontend dependencies already installed.
+    echo [OK] FFmpeg found.
+)
+echo.
+
+REM --- Install frontend dependencies ---
+if not exist frontend\node_modules (
+    echo Installing frontend dependencies...
+    cd frontend
+    call npm install --silent
+    cd ..
+    echo [OK] Frontend dependencies installed.
+) else (
+    echo [OK] Frontend dependencies ready.
 )
 echo.
 
